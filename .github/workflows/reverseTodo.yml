@@ -1,0 +1,102 @@
+name: CI/CD 
+
+on:
+  push:
+    branches:
+      - dev
+      - main
+
+jobs:
+  build_and_test_on_dev_merge:
+    name: Build and Test on dev Merge
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/dev'  # Trigger only for dev branch
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v3
+
+    - name: Set up Node.js for Frontend
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'  
+
+    - name: Install Frontend Dependencies
+      run: |
+        cd frontend
+        npm install
+
+    - name: Set up Python for Backend
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'  # Adjust according to your backend requirements
+
+    - name: Install Backend Dependencies
+      run: |
+        cd backend
+        npm install
+
+    - name: Run Unit Tests for Frontend
+      run: |
+        cd frontend
+        npm run test 
+
+    - name: Run Unit Tests for Backend
+      run: |
+        cd backend
+        pytest 
+
+    - name: Merge dev to main (if tests pass)
+      if: success()  # Only run if previous steps were successful
+      run: |
+        git checkout main
+        git merge dev
+        git push origin main
+
+  build_and_test_on_main_merge:
+    name: Build, Test, and Deploy on main Merge
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'  # Trigger only for main branch
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v3
+
+    - name: Set up Node.js for Frontend
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'  # Adjust according to your frontend requirements
+
+    - name: Install Frontend Dependencies
+      run: |
+        cd frontend
+        npm install
+
+    - name: Set up Python for Backend
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'  # Adjust according to your backend requirements
+
+    - name: Install Backend Dependencies
+      run: |
+        cd backend
+        pip install -r requirements.txt
+
+    - name: Run Unit Tests for Frontend
+      run: |
+        cd frontend
+        npm run test  
+
+    - name: Run Unit Tests for Backend
+      run: |
+        cd backend
+        pytest  
+
+    - name: Build Docker Images
+      run: |
+        docker-compose -f docker-compose.yml build
+
+    - name: Push Docker Images to Docker Hub
+      run: |
+        docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
+        docker-compose -f docker-compose.yml push
