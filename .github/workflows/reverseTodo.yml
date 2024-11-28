@@ -1,111 +1,117 @@
-name: CI/CD 
+name: CI/CD Pipeline
 
 on:
   push:
     branches:
       - dev
+      - main
 
 jobs:
-  build_and_test_on_dev_merge:
-    if: github.ref == 'refs/heads/dev'  # Trigger only for dev branch
+  build-and-test-dev:
+    if: github.ref == 'refs/heads/dev'
     runs-on: ubuntu-latest
-
     steps:
-    - name: Checkout Code
-      uses: actions/checkout@v3
+      - name: Checkout Code
+        uses: actions/checkout@v3
 
-    - name: Set up Node.js for Frontend
-      uses: actions/setup-node@v3
-      with:
-        node-version: '18'
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
 
-    - name: Install Frontend Dependencies
-      run: |
-        cd frontend
-        npm install
+      - name: Install Backend Dependencies
+        run: |
+          cd backend
+          npm install
 
-    - name: Set up Python for Backend
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.x'
+      - name: Install Frontend Dependencies
+        run: |
+          cd frontend
+          npm install
 
-    - name: Install Backend Dependencies
-      run: |
-        cd backend
-        npm install
+      - name: Run Backend Unit Tests
+        run: |
+          cd backend
+          npm test
 
-    - name: Run Unit Tests for Frontend
-      run: |
-        cd frontend
-        npm run test
+      - name: Run Frontend Unit Tests
+        run: |
+          cd frontend
+          npm test
 
-    - name: Run Unit Tests for Backend
-      run: |
-        cd backend
-        npm run test
+      - name: Merge dev into main
+        if: ${{ success() }}
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const sourceBranch = 'dev';
+            const targetBranch = 'main';
+            await github.rest.repos.merge({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              base: targetBranch,
+              head: sourceBranch,
+            });
 
-    - name: Create Pull Request to merge dev to main (if tests pass)
-      if: success()  # Only run if previous steps were successful
-      run: |
-        git checkout main
-        git merge dev
-        git push origin main
-
-  build_and_test_on_main_merge:
-    needs: build_and_test_on_dev_merge
-    if: github.ref == 'refs/heads/main'  # Trigger only for main branch
+  build-test-deploy-main:
+    needs: build-and-test-dev
+    if: github.ref == 'refs/heads/dev' && success()
     runs-on: ubuntu-latest
-
     steps:
-    - name: Checkout Code
-      uses: actions/checkout@v3
+      - name: Checkout Code
+        uses: actions/checkout@v3
 
-    - name: Set up Node.js for Frontend
-      uses: actions/setup-node@v3
-      with:
-        node-version: '18'
+      - name: Fetch the main branch
+        run: |
+          git fetch origin main
+          git checkout main
 
-    - name: Install Frontend Dependencies
-      run: |
-        cd frontend
-        npm install
+      - name: Run Backend Unit Tests
+        run: |
+          cd backend
+          npm install
+          npm test
 
-    - name: Set up Python for Backend
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.x'
+      - name: Run Frontend Unit Tests
+        run: |
+          cd frontend
+          npm install
+          npm test
 
-    - name: Install Backend Dependencies
-      run: |
-        cd backend
-        npm install
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
 
-    - name: Run Unit Tests for Frontend
-      run: |
-        cd frontend
-        npm run test
+      - name: Install E2E Test Dependencies
+        run: |
+          cd e2e-tests
+          npm install
 
-    - name: Run Unit Tests for Backend
-      run: |
-        cd backend
-        npm run test
+      - name: Run E2E Tests
+        run: |
+          cd e2e-tests
+          node test.js
 
-    - name: Run E2E Tests
-      run: |
-        cd frontend
-        npm run test
-
-    - name: Install Docker Compose
-      run: |
+      - name: Install Docker Compose
+        run: |
           sudo curl -L "https://github.com/docker/compose/releases/download/v2.22.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
           sudo chmod +x /usr/local/bin/docker-compose
           docker-compose --version # Verify installation
 
-    - name: Build Docker Images
-      run: |
-        docker-compose up --build -d
+      - name: Build Backend Docker Image
+        run: |
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/backend:latest ./backend
 
-    - name: Push Docker Images to Docker Hub
-      run: |
-        docker login -u marliyatou -p ${{ secrets.DOCKER_TOKEN }}
-        docker-compose -f docker-compose.yml push
+      - name: Build Frontend Docker Image
+        run: |
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/frontend:latest ./frontend
+
+      - name: Push Docker Images
+        env:
+          DOCKER_USERNAME: marliyatou
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_TOKEN }}
+        run: |
+          echo $DOCKER_PASSWORD | docker login --username $DOCKER_USERNAME --password-stdin
+          docker push ${{ secrets.DOCKER_USERNAME }}/backend:latest
+          docker push ${{ secrets.DOCKER_USERNAME }}/frontend:latest
