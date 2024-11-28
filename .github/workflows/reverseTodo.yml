@@ -54,6 +54,7 @@ jobs:
         git push origin main
 
   build_and_test_on_main_merge:
+    needs: build_and_test_on_dev_merge
     name: Build, Test, and Deploy on main Merge
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'  # Trigger only for main branch
