@@ -95,7 +95,7 @@ jobs:
     - name: Run E2E Tests
       run: |
         cd frontend
-        npm run e2e  # Adjust as per your E2E test command
+        npm run test
 
     - name: Install Docker Compose
       run: |
