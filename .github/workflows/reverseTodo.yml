@@ -8,9 +8,8 @@ on:
 
 jobs:
   build_and_test_on_dev_merge:
-    name: Build and Test on dev Merge
-    runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/dev'  # Trigger only for dev branch
+    runs-on: ubuntu-latest
 
     steps:
     - name: Checkout Code
@@ -54,9 +53,9 @@ jobs:
         git push origin main
 
   build_and_test_on_main_merge:
-    name: Build, Test, and Deploy on main Merge
-    runs-on: ubuntu-latest
+    needs: build_and_test_on_dev_merge
     if: github.ref == 'refs/heads/main'  # Trigger only for main branch
+    runs-on: ubuntu-latest
 
     steps:
     - name: Checkout Code
