@@ -80,7 +80,7 @@ jobs:
     - name: Install Backend Dependencies
       run: |
         cd backend
-        pip install -r requirements.txt
+        npm install
 
     - name: Run Unit Tests for Frontend
       run: |
@@ -98,5 +98,5 @@ jobs:
 
     - name: Push Docker Images to Docker Hub
       run: |
-        docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
+        docker login -u marliyatou -p ${{ secrets.DOCKER_TOKEN }}
         docker-compose -f docker-compose.yml push
