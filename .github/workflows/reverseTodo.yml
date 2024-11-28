@@ -44,7 +44,7 @@ jobs:
     - name: Run Unit Tests for Backend
       run: |
         cd backend
-        pytest 
+        npm run test 
 
     - name: Merge dev to main (if tests pass)
       if: success()  # Only run if previous steps were successful
@@ -90,7 +90,7 @@ jobs:
     - name: Run Unit Tests for Backend
       run: |
         cd backend
-        pytest  
+        npm run test 
 
     - name: Build Docker Images
       run: |
