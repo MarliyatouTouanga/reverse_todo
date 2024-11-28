@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - dev
-      - main
 
 jobs:
   build_and_test_on_dev_merge:
