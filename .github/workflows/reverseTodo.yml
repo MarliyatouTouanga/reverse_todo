@@ -101,11 +101,11 @@ jobs:
 
       - name: Build Backend Docker Image
         run: |
-          docker build -t ${{ secrets.DOCKER_USERNAME }}/backend:latest ./backend
+          docker build -t marliyatou/backend:latest ./backend
 
       - name: Build Frontend Docker Image
         run: |
-          docker build -t ${{ secrets.DOCKER_USERNAME }}/frontend:latest ./frontend
+          docker build -t marliyatou/frontend:latest ./frontend
 
       - name: Push Docker Images
         env:
